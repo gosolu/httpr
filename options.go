@@ -44,9 +44,6 @@ type Options struct {
 	// AfterAttempt is called after each request attempt completes.
 	AfterAttempt AfterAttemptHook
 
-	// Logger logs debug/retry messages. Default is NoopLogger.
-	Logger Logger
-
 	// CircuitBreakerEnabled indicates whether the inner circuit breaker is enabled.
 	CircuitBreakerEnabled bool
 
@@ -69,7 +66,6 @@ func DefaultOptions() *Options {
 		HTTPClient:        &http.Client{Transport: defaultTransport()},
 		PerAttemptTimeout: 0,
 		MaxBodyBytes:      DefaultMaxBodySize,
-		Logger:            NoopLogger{},
 	}
 }
 
@@ -229,15 +225,6 @@ func WithOnRetry(hook OnRetryHook) Option {
 func WithAfterAttempt(hook AfterAttemptHook) Option {
 	return func(o *Options) {
 		o.AfterAttempt = hook
-	}
-}
-
-// WithLogger configures a logger for retry activity.
-func WithLogger(l Logger) Option {
-	return func(o *Options) {
-		if l != nil {
-			o.Logger = l
-		}
 	}
 }
 

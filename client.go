@@ -167,9 +167,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		// Calculate backoff wait duration
 		wait := c.opts.Backoff.NextBackoff(attempt, resp)
 
-		c.opts.Logger.Printf("httpr: attempt %d failed (err: %v, status: %v), retrying in %v...",
-			attempt, err, responseStatus(resp), wait)
-
 		if c.opts.OnRetry != nil {
 			c.opts.OnRetry(attempt, req, resp, err, wait)
 		}
@@ -181,13 +178,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		case <-time.After(wait):
 		}
 	}
-}
-
-func responseStatus(resp *http.Response) string {
-	if resp != nil {
-		return resp.Status
-	}
-	return "<none>"
 }
 
 // Get issues a GET request to the specified URL using the provided context with retry support.

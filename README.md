@@ -37,8 +37,7 @@ A production-grade, zero-dependency Go HTTP client library with customizable aut
   - Provides `http.RoundTripper` (`httpr.NewRoundTripper`) to add retries directly into any existing `*http.Client` (e.g. AWS SDK, Google Cloud SDK, OpenAPI clients).
   - Convenience methods: `Get`, `Head`, `Post`, `PostForm`, and `StandardClient()`.
 - **Observability**:
-  - `WithOnRetry` and `WithAfterAttempt` lifecycle hooks.
-  - Pluggable logger interface (`NewStdLogger`, `NewSlogLogger`, or custom).
+  - `WithOnRetry` and `WithAfterAttempt` lifecycle hooks for custom logging, metrics, and tracing.
 
 ---
 
@@ -115,13 +114,10 @@ client := httpr.NewClient(
         MaxIdleConns: 50,
     }),
 
-    // Lifecycle hooks
+    // Lifecycle hooks for logging, metrics, and tracing
     httpr.WithOnRetry(func(attempt int, req *http.Request, resp *http.Response, err error, wait time.Duration) {
-        log.Printf("Attempt %d failed; retrying in %v...", attempt, wait)
+        log.Printf("Attempt %d failed (err: %v); retrying in %v...", attempt, err, wait)
     }),
-
-    // Structured logging with slog
-    httpr.WithLogger(httpr.NewSlogLogger(slog.Default(), slog.LevelInfo)),
 )
 ```
 
@@ -311,7 +307,6 @@ client := httpr.NewClient(
 | `WithHTTPClient(*http.Client)` | `&http.Client{...}` | Custom underlying HTTP client. |
 | `WithOnRetry(OnRetryHook)` | `nil` | Hook called before sleeping and executing a retry. |
 | `WithAfterAttempt(AfterAttemptHook)`| `nil` | Hook called after each attempt finishes. |
-| `WithLogger(Logger)` | `NoopLogger` | Pluggable logger (`NewStdLogger`, `NewSlogLogger`). |
 | `WithCircuitBreaker(...)` | Disabled | Enable built-in SRE circuit breaker, auto-wrapping transport. |
 | `WithCustomCircuitBreaker(...)` | Disabled | Enable custom `CircuitBreaker` implementation. |
 | `WithCircuitBreakerClassifier(...)`| Default | Custom success/failure classification for circuit breaker. |

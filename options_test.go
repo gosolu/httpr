@@ -11,14 +11,12 @@ import (
 
 func TestOptions_Config(t *testing.T) {
 	stdClient := &http.Client{}
-	logger := NewStdLogger(nil, "", 0)
 
 	opts := DefaultOptions()
 	c := NewClient(
 		WithMaxRetries(-1), // should clamp to 0
 		WithHTTPClient(stdClient),
 		WithMaxBodyBytes(4096),
-		WithLogger(logger),
 		WithCheckRetry(func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 			return false, nil
 		}),
