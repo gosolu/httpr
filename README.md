@@ -11,7 +11,8 @@ A production-grade, zero-dependency Go HTTP client library with customizable aut
 
 - **Zero External Dependencies**: Pure standard library Go (Go 1.22+).
 - **All Features Are Optional**: Sensible production-ready defaults out of the box (`httpr.NewClient()`).
-- **Context-First Design**: `Client.Do`, `Client.Get`, `Client.Post`, `Client.Head`, and `Client.PostForm` take a `context.Context` parameter, prioritizing it over any context attached to the request.
+- **Global Default Methods**: Package-level `httpr.Get`, `httpr.Post`, `httpr.Put`, `httpr.Delete`, `httpr.Head`, `httpr.PostForm`, and `httpr.Do` for zero-boilerplate requests using a thread-safe, lazily-initialized default client (`httpr.DefaultClient()`).
+- **Context-First Design**: All methods (`Do`, `Get`, `Post`, `Put`, `Delete`, `Head`, `PostForm`) take a `context.Context` parameter, prioritizing it over any context attached to the request.
 - **Flexible Backoff Strategies**:
   - Exponential Backoff (configurable factor, min/max wait caps)
   - Jitter support: `FullJitter`, `EqualJitter`, and `NoJitter` (mitigates the *thundering herd* problem)
@@ -35,7 +36,7 @@ A production-grade, zero-dependency Go HTTP client library with customizable aut
   - Optional `WithPerAttemptTimeout` for individual attempt timeouts without overriding the overall context deadline.
 - **Seamless Standard Library Integration**:
   - Provides `http.RoundTripper` (`httpr.NewRoundTripper`) to add retries directly into any existing `*http.Client` (e.g. AWS SDK, Google Cloud SDK, OpenAPI clients).
-  - Convenience methods: `Get`, `Head`, `Post`, `PostForm`, and `StandardClient()`.
+  - Convenience methods: `Get`, `Head`, `Post`, `Put`, `Delete`, `PostForm`, and `StandardClient()`.
 - **Observability**:
   - `WithOnRetry` and `WithAfterAttempt` lifecycle hooks for custom logging, metrics, and tracing.
 
@@ -51,7 +52,50 @@ go get github.com/gosolu/httpr
 
 ## Quick Start
 
-### Basic Usage with Defaults
+### Global Default Methods (Zero-Setup)
+
+For quick scripts or standard microservices, use package-level functions directly without initializing a client:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"time"
+
+	"github.com/gosolu/httpr"
+)
+
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Direct call using the global default client (lazily initialized)
+	resp, err := httpr.Get(ctx, "https://api.example.com/data")
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Printf("Response: %s\n", string(body))
+}
+```
+
+You can also customize the global default client globally:
+
+```go
+// Replace the global default client with customized options
+httpr.SetDefaultClient(httpr.NewClient(
+	httpr.WithMaxRetries(5),
+	httpr.WithCircuitBreaker(),
+))
+```
+
+### Explicit Client Usage with Defaults
 
 ```go
 package main

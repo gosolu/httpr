@@ -100,3 +100,14 @@ func ExampleWithCircuitBreaker() {
 	fmt.Println("Circuit breaker configured")
 	// Output: Circuit breaker configured
 }
+
+func ExampleGet() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Make requests directly using the global default client without manual instantiation
+	_ = ctx
+	fmt.Println("Global default request")
+	// Output: Global default request
+}
+

@@ -215,6 +215,27 @@ func (c *Client) PostForm(ctx context.Context, targetURL string, data url.Values
 	return c.Post(ctx, targetURL, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
+// Put issues a PUT request with the specified body to the target URL using the provided context with retry support.
+func (c *Client) Put(ctx context.Context, url, contentType string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, body)
+	if err != nil {
+		return nil, err
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	return c.Do(ctx, req)
+}
+
+// Delete issues a DELETE request to the specified URL using the provided context with retry support.
+func (c *Client) Delete(ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(ctx, req)
+}
+
 // StandardClient returns a standard library *http.Client configured with this httpr Client's
 // retry policies and settings via an http.RoundTripper transport.
 func (c *Client) StandardClient() *http.Client {
