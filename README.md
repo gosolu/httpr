@@ -17,6 +17,12 @@ A production-grade, zero-dependency Go HTTP client library with customizable aut
   - Jitter support: `FullJitter`, `EqualJitter`, and `NoJitter` (mitigates the *thundering herd* problem)
   - Linear and Constant backoff strategies
   - Automatic `Retry-After` header parsing (both seconds and HTTP RFC1123 dates)
+- **Built-in SRE Circuit Breaker**:
+  - Google SRE client-side adaptive throttling algorithm (adapted from `go-kratos/aegis/circuitbreaker`).
+  - Zero external dependencies.
+  - Automatically wraps the client's internal transport via `httpr.WithCircuitBreaker(...)`.
+  - Automatically halts retries when the breaker throttles requests (`ErrCircuitOpen`).
+  - Configurable success ratios, minimum request thresholds, rolling window durations, and custom failure classifiers.
 - **Extensible Retry Policies**:
   - Default policy: retries transient network errors, timeouts, connection refused/reset, and HTTP 408, 429, 500, 502, 503, 504.
   - Safe: avoids retrying non-idempotent 4xx client errors (400, 401, 403, 404, etc.) or 501 Not Implemented.
@@ -204,6 +210,51 @@ client := httpr.NewClient(
 
 ---
 
+## Circuit Breaker (Google SRE Adaptive Throttling)
+
+`httpr` includes a built-in, zero-dependency circuit breaker based on the **Google SRE client-side adaptive throttling** algorithm (adapted from [`go-kratos/aegis/circuitbreaker`](https://github.com/go-kratos/aegis/tree/main/circuitbreaker)).
+
+When enabled, `httpr` automatically wraps the client's internal transport with the circuit breaker. If failures exceed acceptable thresholds, the breaker begins dropping requests with `httpr.ErrCircuitOpen`. The retry engine detects this and **halts immediately**, preventing retry storms.
+
+```go
+client := httpr.NewClient(
+    httpr.WithMaxRetries(3),
+    // Enable the built-in SRE circuit breaker
+    httpr.WithCircuitBreaker(
+        httpr.WithSuccessRatio(0.6),      // K = 1 / 0.6 ≈ 1.67 (default 0.6)
+        httpr.WithMinRequests(20),       // Threshold before throttling begins (default 20)
+        httpr.WithWindow(5*time.Second), // Rolling window size (default 5s)
+        httpr.WithBuckets(10),           // Number of sliding buckets (default 10)
+    ),
+)
+
+// When circuit is open, requests fail fast with httpr.ErrCircuitOpen:
+resp, err := client.Get(ctx, "https://api.example.com/endpoint")
+if errors.Is(err, httpr.ErrCircuitOpen) {
+    // Fast-fail handling without waiting for timeouts or retries
+}
+```
+
+### Custom Failure Classifier
+
+By default, network errors and HTTP `5xx` responses are counted as failures, while `2xx`, `3xx`, and `4xx` responses are counted as successes. You can customize this behavior:
+
+```go
+client := httpr.NewClient(
+    httpr.WithCircuitBreaker(
+        httpr.WithFailureClassifier(func(resp *http.Response, err error) bool {
+            // Also treat 429 Too Many Requests as circuit breaker failures
+            if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
+                return true
+            }
+            return httpr.DefaultCircuitBreakerClassifier(resp, err)
+        }),
+    ),
+)
+```
+
+---
+
 ## Integrating with Existing SDKs (`RoundTripper`)
 
 Any third-party SDK or standard `*http.Client` can use `httpr` by setting its `Transport`:
@@ -261,6 +312,9 @@ client := httpr.NewClient(
 | `WithOnRetry(OnRetryHook)` | `nil` | Hook called before sleeping and executing a retry. |
 | `WithAfterAttempt(AfterAttemptHook)`| `nil` | Hook called after each attempt finishes. |
 | `WithLogger(Logger)` | `NoopLogger` | Pluggable logger (`NewStdLogger`, `NewSlogLogger`). |
+| `WithCircuitBreaker(...)` | Disabled | Enable built-in SRE circuit breaker, auto-wrapping transport. |
+| `WithCustomCircuitBreaker(...)` | Disabled | Enable custom `CircuitBreaker` implementation. |
+| `WithCircuitBreakerClassifier(...)`| Default | Custom success/failure classification for circuit breaker. |
 
 ---
 

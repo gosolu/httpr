@@ -84,3 +84,19 @@ func ExampleNewRoundTripper() {
 	fmt.Println("RoundTripper configured")
 	// Output: RoundTripper configured
 }
+
+func ExampleWithCircuitBreaker() {
+	// Enable built-in SRE circuit breaker with adaptive throttling
+	client := httpr.NewClient(
+		httpr.WithMaxRetries(3),
+		httpr.WithCircuitBreaker(
+			httpr.WithSuccessRatio(0.6), // K = 1 / 0.6 ≈ 1.67
+			httpr.WithMinRequests(20),  // activate after 20 requests in window
+			httpr.WithWindow(5*time.Second),
+		),
+	)
+
+	_ = client
+	fmt.Println("Circuit breaker configured")
+	// Output: Circuit breaker configured
+}

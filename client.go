@@ -47,6 +47,23 @@ func NewClient(opts ...Option) *Client {
 			opt(options)
 		}
 	}
+
+	// If circuit breaker is enabled, automatically wrap the internal transport
+	if options.CircuitBreakerEnabled && options.CircuitBreaker != nil {
+		if options.HTTPClient == nil {
+			options.HTTPClient = &http.Client{}
+		}
+		baseTransport := options.HTTPClient.Transport
+		if baseTransport == nil {
+			baseTransport = defaultTransport()
+		}
+		options.HTTPClient.Transport = NewCircuitBreakerTransport(
+			baseTransport,
+			options.CircuitBreaker,
+			options.CircuitBreakerClassifier,
+		)
+	}
+
 	return &Client{
 		opts: *options,
 	}

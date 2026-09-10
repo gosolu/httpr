@@ -38,6 +38,10 @@ func DefaultRetryPolicy(ctx context.Context, resp *http.Response, err error) (bo
 	}
 
 	if err != nil {
+		// Do not retry if circuit breaker rejected the request
+		if errors.Is(err, ErrCircuitOpen) {
+			return false, err
+		}
 		if errors.Is(err, context.Canceled) {
 			return false, nil
 		}
@@ -79,6 +83,11 @@ func IsTransientError(err error) bool {
 
 	// Never retry if the error is due to explicit cancellation
 	if errors.Is(err, context.Canceled) {
+		return false
+	}
+
+	// Never retry if circuit breaker is open
+	if errors.Is(err, ErrCircuitOpen) {
 		return false
 	}
 

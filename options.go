@@ -46,6 +46,15 @@ type Options struct {
 
 	// Logger logs debug/retry messages. Default is NoopLogger.
 	Logger Logger
+
+	// CircuitBreakerEnabled indicates whether the inner circuit breaker is enabled.
+	CircuitBreakerEnabled bool
+
+	// CircuitBreaker is the circuit breaker instance used to protect HTTP attempts.
+	CircuitBreaker CircuitBreaker
+
+	// CircuitBreakerClassifier classifies attempt outcomes as success or failure for the circuit breaker.
+	CircuitBreakerClassifier CircuitBreakerClassifier
 }
 
 // Option configures an Options struct.
@@ -228,6 +237,48 @@ func WithLogger(l Logger) Option {
 	return func(o *Options) {
 		if l != nil {
 			o.Logger = l
+		}
+	}
+}
+
+// WithCircuitBreaker enables the built-in SRE circuit breaker, automatically wrapping
+// the client's internal HTTP transport.
+func WithCircuitBreaker(opts ...CircuitBreakerOption) Option {
+	cfg := DefaultCircuitBreakerConfig()
+	for _, opt := range opts {
+		if opt != nil {
+			opt(cfg)
+		}
+	}
+	breaker := NewSREBreaker(opts...)
+	return func(o *Options) {
+		o.CircuitBreakerEnabled = true
+		o.CircuitBreaker = breaker
+		o.CircuitBreakerClassifier = cfg.Classifier
+	}
+}
+
+// WithCustomCircuitBreaker enables a custom CircuitBreaker implementation, automatically
+// wrapping the client's internal HTTP transport.
+func WithCustomCircuitBreaker(cb CircuitBreaker, classifier ...CircuitBreakerClassifier) Option {
+	var c CircuitBreakerClassifier = DefaultCircuitBreakerClassifier
+	if len(classifier) > 0 && classifier[0] != nil {
+		c = classifier[0]
+	}
+	return func(o *Options) {
+		if cb != nil {
+			o.CircuitBreakerEnabled = true
+			o.CircuitBreaker = cb
+			o.CircuitBreakerClassifier = c
+		}
+	}
+}
+
+// WithCircuitBreakerClassifier sets a custom failure classifier for the circuit breaker.
+func WithCircuitBreakerClassifier(fn CircuitBreakerClassifier) Option {
+	return func(o *Options) {
+		if fn != nil {
+			o.CircuitBreakerClassifier = fn
 		}
 	}
 }
