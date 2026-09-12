@@ -3,7 +3,6 @@
 A production-grade, zero-dependency Go HTTP client library with customizable automated retries, exponential backoff with jitter, rewindable request bodies, and seamless `http.RoundTripper` integration.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/gosolu/httpr.svg)](https://pkg.go.dev/github.com/gosolu/httpr)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gosolu/httpr)](https://goreportcard.com/report/github.com/gosolu/httpr)
 
 ---
 
