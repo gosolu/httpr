@@ -66,7 +66,7 @@ func TestClient_RetryOn500ThenSuccess(t *testing.T) {
 	})
 
 	var retriesLogged int32
-	var afterAttempts int32
+	var tracesReceived int32
 	client := NewClient(
 		WithMaxRetries(3),
 		WithTransport(mock),
@@ -74,8 +74,8 @@ func TestClient_RetryOn500ThenSuccess(t *testing.T) {
 		WithOnRetry(func(attempt int, req *http.Request, resp *http.Response, err error, wait time.Duration) {
 			atomic.AddInt32(&retriesLogged, 1)
 		}),
-		WithAfterAttempt(func(attempt int, req *http.Request, resp *http.Response, err error) {
-			atomic.AddInt32(&afterAttempts, 1)
+		WithTrace(func(req *http.Request, trace TraceInfo) {
+			atomic.AddInt32(&tracesReceived, 1)
 		}),
 	)
 
@@ -94,8 +94,8 @@ func TestClient_RetryOn500ThenSuccess(t *testing.T) {
 	if atomic.LoadInt32(&retriesLogged) != 2 {
 		t.Errorf("expected 2 onRetry calls, got %d", retriesLogged)
 	}
-	if atomic.LoadInt32(&afterAttempts) != 3 {
-		t.Errorf("expected 3 afterAttempt calls, got %d", afterAttempts)
+	if atomic.LoadInt32(&tracesReceived) != 3 {
+		t.Errorf("expected 3 trace calls, got %d", tracesReceived)
 	}
 }
 

@@ -37,8 +37,8 @@ A production-grade, zero-dependency Go HTTP client library with customizable aut
   - Provides `http.RoundTripper` (`httpr.NewRoundTripper`) to add retries directly into any existing `*http.Client` (e.g. AWS SDK, Google Cloud SDK, OpenAPI clients).
   - Convenience methods: `Get`, `Head`, `Post`, `Put`, `Delete`, `PostForm`, and `StandardClient()`.
 - **Observability & Tracing**:
-  - `WithTrace` hook powered by Go's standard `net/http/httptrace`: provides automated timing breakdown per attempt (DNS, TCP connect, TLS handshake, TTFB, total duration) and connection reuse stats (`Reused`, `WasIdle`, `IdleDuration`).
-  - `WithOnRetry` and `WithAfterAttempt` lifecycle hooks for custom logging and metrics.
+  - `WithTrace` hook powered by Go's standard `net/http/httptrace`: provides automated timing breakdown per attempt (DNS, TCP connect, TLS handshake, TTFB, total duration), response metadata (`StatusCode`, `Proto`, `ContentLength`, `Err`), and connection reuse stats (`Reused`, `WasIdle`, `IdleDuration`).
+  - `WithOnRetry` lifecycle hook for custom logging and backoff observation.
 
 ---
 
@@ -395,8 +395,7 @@ client := httpr.NewClient(
 | `WithTransport(RoundTripper)` | Tuned `*http.Transport` | Custom underlying HTTP transport. |
 | `WithHTTPClient(*http.Client)` | `&http.Client{...}` | Custom underlying HTTP client. |
 | `WithOnRetry(OnRetryHook)` | `nil` | Hook called before sleeping and executing a retry. |
-| `WithAfterAttempt(AfterAttemptHook)`| `nil` | Hook called after each attempt finishes. |
-| `WithTrace(TraceHook)` | `nil` | Hook called after each attempt with automated `httptrace` timing and connection stats. |
+| `WithTrace(TraceHook)` | `nil` | Hook called after each attempt with automated `httptrace` timing, response info, and connection stats. |
 | `WithCircuitBreaker(...)` | Disabled | Enable built-in SRE circuit breaker, auto-wrapping transport. |
 | `WithCustomCircuitBreaker(...)` | Disabled | Enable custom `CircuitBreaker` implementation. |
 | `WithCircuitBreakerClassifier(...)`| Default | Custom success/failure classification for circuit breaker. |

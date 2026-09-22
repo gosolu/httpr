@@ -35,7 +35,7 @@
 |---|---|---|
 | [`client.go`](./client.go) | Core HTTP client & retry engine | `Client`, `NewClient`, `Client.Do`, `Get`, `Post`, `Put`, `Delete`, `Head`, `PostForm`, `StandardClient`. Implements attempt loop, per-attempt timeouts, context precedence, and body rewinding. |
 | [`default.go`](./default.go) | Global singleton & package-level functions | `DefaultClient()`, `SetDefaultClient()`, package-level `Get`, `Post`, `Put`, `Delete`, `Head`, `PostForm`, `Do`. Lazily initialized using `sync.RWMutex`. |
-| [`options.go`](./options.go) | Functional configuration options | `Options`, `Option`, `WithMaxRetries`, `WithBackoff`, `WithRetryPolicy`, `WithTransport`, `WithCircuitBreaker`, `WithPerAttemptTimeout`, `WithOnRetry`, `WithAfterAttempt`, `WithTrace`. |
+| [`options.go`](./options.go) | Functional configuration options | `Options`, `Option`, `WithMaxRetries`, `WithBackoff`, `WithRetryPolicy`, `WithTransport`, `WithCircuitBreaker`, `WithPerAttemptTimeout`, `WithOnRetry`, `WithTrace`. |
 | [`trace.go`](./trace.go) | Automated HTTP request tracing | `TraceInfo`, `TraceHook`, `newTraceCollector`. Automatically computes DNS, Connect, TLS, TTFB (WaitDuration), and connection reuse metrics using `net/http/httptrace`. |
 | [`backoff.go`](./backoff.go) | Backoff strategies & jitter | `Backoff` interface, `ExponentialBackoff` (`FullJitter`, `EqualJitter`, `NoJitter`), `LinearBackoff`, `ConstantBackoff`, `ParseRetryAfter` (RFC1123 & seconds). |
 | [`policy.go`](./policy.go) | Retry qualification policies | `RetryPolicy` signature, `DefaultRetryPolicy` (retries 5xx, 429, 408, network errors; halts on `ErrCircuitOpen`), `RetryOnStatusCodes`, `CombinePolicies`. |

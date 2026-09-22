@@ -10,9 +10,6 @@ import (
 // OnRetryHook is invoked immediately before waiting and executing a retry attempt.
 type OnRetryHook func(attempt int, req *http.Request, resp *http.Response, err error, wait time.Duration)
 
-// AfterAttemptHook is invoked after every request attempt finishes (regardless of success or retry).
-type AfterAttemptHook func(attempt int, req *http.Request, resp *http.Response, err error)
-
 // Options holds all configurable parameters for httpr Client and Transport.
 type Options struct {
 	// MaxRetries is the maximum number of retry attempts after the initial request.
@@ -40,9 +37,6 @@ type Options struct {
 
 	// OnRetry is called before each retry backoff pause.
 	OnRetry OnRetryHook
-
-	// AfterAttempt is called after each request attempt completes.
-	AfterAttempt AfterAttemptHook
 
 	// Trace is called after each request attempt completes with detailed httptrace timing and connection info.
 	Trace TraceHook
@@ -221,13 +215,6 @@ func WithMaxBodyBytes(n int64) Option {
 func WithOnRetry(hook OnRetryHook) Option {
 	return func(o *Options) {
 		o.OnRetry = hook
-	}
-}
-
-// WithAfterAttempt registers a hook called after each attempt finishes.
-func WithAfterAttempt(hook AfterAttemptHook) Option {
-	return func(o *Options) {
-		o.AfterAttempt = hook
 	}
 }
 

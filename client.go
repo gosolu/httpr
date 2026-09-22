@@ -141,10 +141,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 			c.opts.Trace(attemptReq, traceInfo)
 		}
 
-		if c.opts.AfterAttempt != nil {
-			c.opts.AfterAttempt(attempt, attemptReq, resp, err)
-		}
-
 		// Check retry policy
 		shouldRetry, policyErr := c.opts.RetryPolicy(ctx, resp, err)
 		if policyErr != nil {
