@@ -111,3 +111,22 @@ func ExampleGet() {
 	// Output: Global default request
 }
 
+func ExampleWithTrace() {
+	client := httpr.NewClient(
+		httpr.WithMaxRetries(2),
+		httpr.WithTrace(func(req *http.Request, trace httpr.TraceInfo) {
+			_ = trace.Attempt
+			_ = trace.DNSDuration
+			_ = trace.ConnectDuration
+			_ = trace.TLSDuration
+			_ = trace.WaitDuration
+			_ = trace.Reused
+		}),
+	)
+
+	_ = client
+	fmt.Println("Trace hook configured")
+	// Output: Trace hook configured
+}
+
+

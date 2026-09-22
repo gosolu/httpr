@@ -123,12 +123,22 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 			attemptCtx, cancel = context.WithTimeout(ctx, c.opts.PerAttemptTimeout)
 		}
 
+		var traceColl *traceCollector
+		if c.opts.Trace != nil {
+			attemptCtx, traceColl = newTraceCollector(attemptCtx, attempt)
+		}
+
 		attemptReq := req.Clone(attemptCtx)
 
 		// Execute HTTP attempt
 		resp, err := c.opts.HTTPClient.Do(attemptReq)
 		if cancel != nil {
 			cancel()
+		}
+
+		if traceColl != nil {
+			traceInfo := traceColl.finish()
+			c.opts.Trace(attemptReq, traceInfo)
 		}
 
 		if c.opts.AfterAttempt != nil {

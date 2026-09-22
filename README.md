@@ -36,8 +36,9 @@ A production-grade, zero-dependency Go HTTP client library with customizable aut
 - **Seamless Standard Library Integration**:
   - Provides `http.RoundTripper` (`httpr.NewRoundTripper`) to add retries directly into any existing `*http.Client` (e.g. AWS SDK, Google Cloud SDK, OpenAPI clients).
   - Convenience methods: `Get`, `Head`, `Post`, `Put`, `Delete`, `PostForm`, and `StandardClient()`.
-- **Observability**:
-  - `WithOnRetry` and `WithAfterAttempt` lifecycle hooks for custom logging, metrics, and tracing.
+- **Observability & Tracing**:
+  - `WithTrace` hook powered by Go's standard `net/http/httptrace`: provides automated timing breakdown per attempt (DNS, TCP connect, TLS handshake, TTFB, total duration) and connection reuse stats (`Reused`, `WasIdle`, `IdleDuration`).
+  - `WithOnRetry` and `WithAfterAttempt` lifecycle hooks for custom logging and metrics.
 
 ---
 
@@ -331,6 +332,43 @@ client := httpr.NewClient(
 
 ---
 
+## HTTP Tracing (`WithTrace`)
+
+`httpr` provides zero-configuration HTTP request tracing powered by Go's standard library `net/http/httptrace`. Instead of implementing low-level callbacks and calculating timestamps manually, `httpr` automatically computes a structured `TraceInfo` for each attempt:
+
+```go
+client := httpr.NewClient(
+    httpr.WithMaxRetries(2),
+    httpr.WithTrace(func(req *http.Request, trace httpr.TraceInfo) {
+        log.Printf("[Attempt %d] Host=%s Remote=%s Total=%v DNS=%v Connect=%v TLS=%v TTFB=%v (ReusedConn=%v)",
+            trace.Attempt,
+            req.URL.Host,
+            trace.RemoteAddr,
+            trace.TotalDuration,
+            trace.DNSDuration,
+            trace.ConnectDuration,
+            trace.TLSDuration,
+            trace.WaitDuration,
+            trace.Reused,
+        )
+    }),
+)
+```
+
+### `TraceInfo` Fields:
+- `Attempt`: 1-based attempt sequence number (1 for initial attempt, 2 for retry 1, etc.).
+- `DNSDuration`: Time spent resolving domain names to IP addresses (0 if connection was reused).
+- `ConnectDuration`: Time spent establishing the TCP connection (0 if connection was reused).
+- `TLSDuration`: Time spent on TLS handshake (0 if connection was reused or HTTP).
+- `WaitDuration`: Server processing wait time (TTFB / Time to First Byte) from request written to first response byte.
+- `TotalDuration`: Total elapsed time for this HTTP attempt.
+- `Reused`: Whether an existing keep-alive connection was reused.
+- `WasIdle`: Whether the connection was fetched from the idle pool.
+- `IdleDuration`: Duration the connection was idle before reuse.
+- `RemoteAddr`: IP and port connected to (e.g. `93.184.216.34:443`).
+
+---
+
 ## Configuration Options Summary
 
 | Option | Default | Description |
@@ -350,6 +388,7 @@ client := httpr.NewClient(
 | `WithHTTPClient(*http.Client)` | `&http.Client{...}` | Custom underlying HTTP client. |
 | `WithOnRetry(OnRetryHook)` | `nil` | Hook called before sleeping and executing a retry. |
 | `WithAfterAttempt(AfterAttemptHook)`| `nil` | Hook called after each attempt finishes. |
+| `WithTrace(TraceHook)` | `nil` | Hook called after each attempt with automated `httptrace` timing and connection stats. |
 | `WithCircuitBreaker(...)` | Disabled | Enable built-in SRE circuit breaker, auto-wrapping transport. |
 | `WithCustomCircuitBreaker(...)` | Disabled | Enable custom `CircuitBreaker` implementation. |
 | `WithCircuitBreakerClassifier(...)`| Default | Custom success/failure classification for circuit breaker. |

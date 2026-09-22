@@ -44,6 +44,9 @@ type Options struct {
 	// AfterAttempt is called after each request attempt completes.
 	AfterAttempt AfterAttemptHook
 
+	// Trace is called after each request attempt completes with detailed httptrace timing and connection info.
+	Trace TraceHook
+
 	// CircuitBreakerEnabled indicates whether the inner circuit breaker is enabled.
 	CircuitBreakerEnabled bool
 
@@ -267,5 +270,12 @@ func WithCircuitBreakerClassifier(fn CircuitBreakerClassifier) Option {
 		if fn != nil {
 			o.CircuitBreakerClassifier = fn
 		}
+	}
+}
+
+// WithTrace configures a trace hook that receives detailed timing and connection metadata for each request attempt.
+func WithTrace(hook TraceHook) Option {
+	return func(o *Options) {
+		o.Trace = hook
 	}
 }
