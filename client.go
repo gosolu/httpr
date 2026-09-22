@@ -137,7 +137,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		}
 
 		if traceColl != nil {
-			traceInfo := traceColl.finish()
+			traceInfo := traceColl.finish(resp, err)
 			c.opts.Trace(attemptReq, traceInfo)
 		}
 

@@ -14,6 +14,18 @@ type TraceInfo struct {
 	// Attempt is the 1-based sequence number of this attempt (1 for initial attempt, 2 for retry 1, etc.).
 	Attempt int
 
+	// StatusCode is the HTTP response status code (e.g. 200, 404, 500), or 0 if a network/dial error occurred.
+	StatusCode int
+
+	// ContentLength records the length of the associated content in bytes, or -1 if unknown.
+	ContentLength int64
+
+	// Proto is the HTTP protocol version used for the response (e.g. "HTTP/1.1", "HTTP/2.0").
+	Proto string
+
+	// Err is the error returned by this attempt (if any).
+	Err error
+
 	// DNSDuration is the time spent resolving domain names to IP addresses.
 	// Will be 0 if an existing connection was reused or an IP address was dialed directly.
 	DNSDuration time.Duration
@@ -150,9 +162,15 @@ func newTraceCollector(ctx context.Context, attempt int) (context.Context, *trac
 	return httptrace.WithClientTrace(ctx, clientTrace), tc
 }
 
-func (tc *traceCollector) finish() TraceInfo {
+func (tc *traceCollector) finish(resp *http.Response, err error) TraceInfo {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
 	tc.info.TotalDuration = time.Since(tc.start)
+	tc.info.Err = err
+	if resp != nil {
+		tc.info.StatusCode = resp.StatusCode
+		tc.info.ContentLength = resp.ContentLength
+		tc.info.Proto = resp.Proto
+	}
 	return tc.info
 }

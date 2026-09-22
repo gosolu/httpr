@@ -246,7 +246,7 @@ func TestClient_ContextCancellation(t *testing.T) {
 	client := NewClient(
 		WithMaxRetries(5),
 		WithTransport(mock),
-		WithBackoff(NewConstantBackoff(500 * time.Millisecond)),
+		WithBackoff(NewConstantBackoff(500*time.Millisecond)),
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)

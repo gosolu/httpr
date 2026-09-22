@@ -61,6 +61,15 @@ func TestWithTrace_RealServer(t *testing.T) {
 	if info.RemoteAddr == "" {
 		t.Error("expected non-empty RemoteAddr")
 	}
+	if info.StatusCode != http.StatusOK {
+		t.Errorf("expected StatusCode=200, got %d", info.StatusCode)
+	}
+	if info.Proto == "" {
+		t.Error("expected non-empty Proto")
+	}
+	if info.Err != nil {
+		t.Errorf("expected Err=nil, got %v", info.Err)
+	}
 }
 
 func TestWithTrace_ConnectionReuse(t *testing.T) {
@@ -274,6 +283,12 @@ func TestWithTrace_DialError(t *testing.T) {
 	if traceInfo.Attempt != 1 {
 		t.Errorf("expected Attempt=1 on dial error, got %d", traceInfo.Attempt)
 	}
+	if traceInfo.StatusCode != 0 {
+		t.Errorf("expected StatusCode=0 on dial error, got %d", traceInfo.StatusCode)
+	}
+	if traceInfo.Err == nil {
+		t.Error("expected non-nil Err on dial error")
+	}
 	if traceInfo.TotalDuration <= 0 {
 		t.Errorf("expected TotalDuration > 0 on dial error, got %v", traceInfo.TotalDuration)
 	}
@@ -338,7 +353,21 @@ func TestTraceCollector_CallbacksDirect(t *testing.T) {
 	clientTrace.WroteRequest(httptrace.WroteRequestInfo{})
 	clientTrace.GotFirstResponseByte()
 
-	info := tc.finish()
+	resp := &http.Response{
+		StatusCode:    http.StatusOK,
+		ContentLength: 42,
+		Proto:         "HTTP/1.1",
+	}
+	info := tc.finish(resp, nil)
+	if info.StatusCode != http.StatusOK {
+		t.Errorf("expected StatusCode 200, got %d", info.StatusCode)
+	}
+	if info.ContentLength != 42 {
+		t.Errorf("expected ContentLength 42, got %d", info.ContentLength)
+	}
+	if info.Proto != "HTTP/1.1" {
+		t.Errorf("expected Proto HTTP/1.1, got %s", info.Proto)
+	}
 	if info.RemoteAddr != "1.2.3.4:80" {
 		t.Errorf("expected RemoteAddr 1.2.3.4:80, got %s", info.RemoteAddr)
 	}

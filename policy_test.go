@@ -22,13 +22,13 @@ func TestDefaultRetryPolicy_StatusCodes(t *testing.T) {
 		{code: http.StatusUnauthorized, wantRetry: false},
 		{code: http.StatusForbidden, wantRetry: false},
 		{code: http.StatusNotFound, wantRetry: false},
-		{code: http.StatusRequestTimeout, wantRetry: true}, // 408
-		{code: http.StatusTooManyRequests, wantRetry: true}, // 429
+		{code: http.StatusRequestTimeout, wantRetry: true},      // 408
+		{code: http.StatusTooManyRequests, wantRetry: true},     // 429
 		{code: http.StatusInternalServerError, wantRetry: true}, // 500
-		{code: http.StatusNotImplemented, wantRetry: false}, // 501
-		{code: http.StatusBadGateway, wantRetry: true}, // 502
-		{code: http.StatusServiceUnavailable, wantRetry: true}, // 503
-		{code: http.StatusGatewayTimeout, wantRetry: true}, // 504
+		{code: http.StatusNotImplemented, wantRetry: false},     // 501
+		{code: http.StatusBadGateway, wantRetry: true},          // 502
+		{code: http.StatusServiceUnavailable, wantRetry: true},  // 503
+		{code: http.StatusGatewayTimeout, wantRetry: true},      // 504
 	}
 
 	for _, tt := range tests {

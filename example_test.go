@@ -91,7 +91,7 @@ func ExampleWithCircuitBreaker() {
 		httpr.WithMaxRetries(3),
 		httpr.WithCircuitBreaker(
 			httpr.WithSuccessRatio(0.6), // K = 1 / 0.6 ≈ 1.67
-			httpr.WithMinRequests(20),  // activate after 20 requests in window
+			httpr.WithMinRequests(20),   // activate after 20 requests in window
 			httpr.WithWindow(5*time.Second),
 		),
 	)
@@ -128,5 +128,3 @@ func ExampleWithTrace() {
 	fmt.Println("Trace hook configured")
 	// Output: Trace hook configured
 }
-
-

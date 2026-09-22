@@ -340,16 +340,20 @@ client := httpr.NewClient(
 client := httpr.NewClient(
     httpr.WithMaxRetries(2),
     httpr.WithTrace(func(req *http.Request, trace httpr.TraceInfo) {
-        log.Printf("[Attempt %d] Host=%s Remote=%s Total=%v DNS=%v Connect=%v TLS=%v TTFB=%v (ReusedConn=%v)",
+        log.Printf("[Attempt %d] Host=%s Remote=%s Status=%d (%s) Len=%d Total=%v DNS=%v Connect=%v TLS=%v TTFB=%v (Reused=%v, Err=%v)",
             trace.Attempt,
             req.URL.Host,
             trace.RemoteAddr,
+            trace.StatusCode,
+            trace.Proto,
+            trace.ContentLength,
             trace.TotalDuration,
             trace.DNSDuration,
             trace.ConnectDuration,
             trace.TLSDuration,
             trace.WaitDuration,
             trace.Reused,
+            trace.Err,
         )
     }),
 )
@@ -357,6 +361,10 @@ client := httpr.NewClient(
 
 ### `TraceInfo` Fields:
 - `Attempt`: 1-based attempt sequence number (1 for initial attempt, 2 for retry 1, etc.).
+- `StatusCode`: HTTP response status code (e.g. `200`, `404`, `500`), or `0` if a network/dial error occurred.
+- `ContentLength`: Response content length in bytes, or `-1` if unknown.
+- `Proto`: HTTP protocol version used for the response (e.g. `"HTTP/1.1"`, `"HTTP/2.0"`).
+- `Err`: Error returned by this attempt (if any), or `nil` on success.
 - `DNSDuration`: Time spent resolving domain names to IP addresses (0 if connection was reused).
 - `ConnectDuration`: Time spent establishing the TCP connection (0 if connection was reused).
 - `TLSDuration`: Time spent on TLS handshake (0 if connection was reused or HTTP).
