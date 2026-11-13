@@ -133,7 +133,14 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		// Execute HTTP attempt
 		resp, err := c.opts.HTTPClient.Do(attemptReq)
 		if cancel != nil {
-			cancel()
+			if err != nil || resp == nil || resp.Body == nil || resp.Body == http.NoBody {
+				cancel()
+			} else {
+				resp.Body = &cancelOnCloseBody{
+					ReadCloser: resp.Body,
+					cancel:     cancel,
+				}
+			}
 		}
 
 		if traceColl != nil {
@@ -248,4 +255,17 @@ func (c *Client) StandardClient() *http.Client {
 	return &http.Client{
 		Transport: NewRoundTripperWithClient(c),
 	}
+}
+
+// cancelOnCloseBody cancels the per-attempt context once the response body is closed,
+// keeping the context alive while the caller or drainAndClose reads the body.
+type cancelOnCloseBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *cancelOnCloseBody) Close() error {
+	err := b.ReadCloser.Close()
+	b.cancel()
+	return err
 }

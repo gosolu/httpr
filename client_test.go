@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"sync"
 	"sync/atomic"
@@ -327,6 +328,72 @@ func TestClient_PerAttemptTimeout(t *testing.T) {
 	if atomic.LoadInt32(&attempts) < 2 {
 		t.Errorf("expected at least 2 attempts due to per-attempt timeout, got %d", attempts)
 	}
+}
+
+func TestClient_PerAttemptTimeout_StreamingBody(t *testing.T) {
+	t.Run("reads full streaming body after Do returns", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			if flusher, ok := w.(http.Flusher); ok {
+				_, _ = w.Write([]byte("chunk-1|"))
+				flusher.Flush()
+				time.Sleep(15 * time.Millisecond)
+				_, _ = w.Write([]byte("chunk-2"))
+				flusher.Flush()
+			}
+		}))
+		defer ts.Close()
+
+		client := NewClient(
+			WithMaxRetries(0),
+			WithPerAttemptTimeout(500*time.Millisecond),
+		)
+
+		resp, err := client.Get(context.Background(), ts.URL)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("failed reading streaming body: %v", err)
+		}
+		if string(body) != "chunk-1|chunk-2" {
+			t.Errorf("expected 'chunk-1|chunk-2', got %q", string(body))
+		}
+	})
+
+	t.Run("enforces per-attempt timeout while reading slow body", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			if flusher, ok := w.(http.Flusher); ok {
+				_, _ = w.Write([]byte("start"))
+				flusher.Flush()
+			}
+			select {
+			case <-time.After(300 * time.Millisecond):
+			case <-r.Context().Done():
+			}
+		}))
+		defer ts.Close()
+
+		client := NewClient(
+			WithMaxRetries(0),
+			WithPerAttemptTimeout(40*time.Millisecond),
+		)
+
+		resp, err := client.Get(context.Background(), ts.URL)
+		if err != nil {
+			t.Fatalf("unexpected error before reading body: %v", err)
+		}
+		defer resp.Body.Close()
+
+		_, err = io.ReadAll(resp.Body)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Errorf("expected context.DeadlineExceeded reading slow body, got %v", err)
+		}
+	})
 }
 
 func TestClient_ConvenienceMethods(t *testing.T) {
